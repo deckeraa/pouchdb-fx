@@ -23,6 +23,7 @@
     db))
 
 (defn attach-change-watcher! [db-name options change-handler]
+  (create-or-open-db! db-name) ;; make sure that the db is created before attaching a change handler.
   (swap! dbs (fn [dbs]
                (let [old-watcher (get-in dbs [db-name :change-watcher])
                      db-obj (get-in dbs [db-name :db-obj])
