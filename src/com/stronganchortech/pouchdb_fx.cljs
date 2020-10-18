@@ -1,5 +1,6 @@
 (ns com.stronganchortech.pouchdb-fx
   (:require
+   [clojure.spec.alpha :as s]
    [re-frame.core :as rf]
    ["pouchdb" :as pouchdb]))
 
@@ -39,6 +40,14 @@
     (when watcher (.cancel watcher))))
 
 (defn sync!
+  "The following event keywords are accepted in handlers:
+  :denied
+  :paused
+  :active
+  :change
+  :complete
+  :error
+  "
   ([db-name target options]
    (sync! db-name target options {}))
   ([db-name target options handlers]
@@ -53,6 +62,13 @@
                                   (.on sync-obj (name k) v))
                                 handlers))
                     (assoc-in dbs [db-name :sync-obj] sync-obj)))))))
+
+(defn cancel-sync!
+  [db-name]
+  (swap! dbs (fn [dbs]
+               (when-let [sync-obj (get-in dbs [db-name :sync-obj])]
+                 (println "Calling .cancel on sync-obj: " sync-obj)
+                 (.cancel sync-obj)))))
 
 (defn attach-success-and-failure-to-promise [promise success failure]
   (let [success (if (keyword? success)
@@ -77,7 +93,7 @@
 
 (rf/reg-fx
  :pouchdb
- (fn [{:keys [method db doc options success failure] :as request}]
+ (fn [{:keys [method db doc docs options success failure] :as request}]
    (let [db (or (db-obj db)
                 (throw (js/Error. (str "PouchDB " db " not found." @dbs))))
          options (or options {})]
@@ -85,6 +101,10 @@
        :all-docs
        (attach-success-and-failure-to-promise
         (.allDocs db (clj->js options))
+        success failure)
+       :bulk-docs
+       (attach-success-and-failure-to-promise
+        (.bulkDocs db (clj->js docs) (clj->js options))
         success failure)
        ;;
        :put
@@ -102,7 +122,15 @@
         (.remove db (clj->js doc) (clj->js options))
         success failure)
        ;;
-       (throw (js/Error. "Unsupported PouchDB method"))
+       :destroy
+       (attach-success-and-failure-to-promise
+        (.destroy db) ;; TODO something with the promise isn't working: Uncaught (in promise) Error: database is destroyed
+        success failure)
+       ;;
+       :cancel-sync!
+       (cancel-sync! db)
+       ;;
+       (throw (js/Error. (str "The requested method: " method " is not supported by com.stronganchortech.pouchdb-fx.")))
        ))))
 
 (rf/reg-event-fx
