@@ -17,13 +17,18 @@
                                (assoc dbs db-name {:db-obj (pouchdb. db-name)}))))]
     (get-in new-dbs [db-name :db-obj])))
 
-(defn db-obj [db]
+(defn db-obj
+  "Given a database object or a database name, will return the corresponding database object."
+  [db]
   (if (or (keyword? db) (string? db))
     (or (get-in @dbs [db :db-obj]) ;; grab it from the cache
         (create-or-open-db! db)) ;; or open/create a new one
     db))
 
-(defn attach-change-watcher! [db-name options change-handler]
+(defn attach-change-watcher!
+  "Attaches the provided change-handler to the db specified by db-name.
+   Cancels existing watchers attached to the db."
+  [db-name options change-handler]
   (create-or-open-db! db-name) ;; make sure that the db is created before attaching a change handler.
   (swap! dbs (fn [dbs]
                (let [old-watcher (get-in dbs [db-name :change-watcher])
@@ -35,7 +40,9 @@
                  (assoc-in dbs [db-name :change-watcher]
                            (.on (.changes db-obj (clj->js options)) "change" change-handler))))))
 
-(defn cancel-watcher! [db-name]
+(defn cancel-watcher!
+  "Cancels all existing watchers on the db specified by db-name."
+  [db-name]
   (let [watcher (get-in @dbs [db-name :change-watcher])]
     (when watcher (.cancel watcher))))
 
@@ -70,7 +77,9 @@
                  (println "Calling .cancel on sync-obj: " sync-obj)
                  (.cancel sync-obj)))))
 
-(defn attach-success-and-failure-to-promise [promise success failure]
+(defn- attach-success-and-failure-to-promise
+  "Takes a promise and attaches optional success and failure handlers."
+  [promise success failure]
   (let [success (if (keyword? success)
                   #(rf/dispatch [success (js->clj % :keywordize-keys true)])
                   success)
@@ -93,10 +102,13 @@
 
 (rf/reg-fx
  :pouchdb
- (fn [{:keys [method db doc docs options success failure] :as request}]
+ (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type options success failure] :as request}]
    (let [db (or (db-obj db)
                 (throw (js/Error. (str "PouchDB " db " not found." @dbs))))
-         options (or options {})]
+         options (or options {})
+         doc-id (or doc-id (:_id doc))  ;; enable devs to pass a doc instead of pulling the id out
+         rev    (or rev    (:_rev doc)) ;; enable devs to pass a doc instead of pulling the rev out
+         ]
      (case method
        ;;
        :destroy
@@ -114,7 +126,7 @@
         (.post db (clj->js doc) (clj->js options))
         success failure)
        ;;
-       ;; TODO get (still need to test
+       ;; TODO get (still need to test)
        :get
        (attach-success-and-failure-to-promise
         (.get db (clj->js doc) (clj->js options))
@@ -135,7 +147,8 @@
         (.allDocs db (clj->js options))
         success failure)
        ;;
-       ;; TODO changes
+       ;; Note: The changes function isn't handler here since it's handled separately in attach-change-watcher!. TODO: Is this the right design decision? 
+       ;; 
        ;; TODO replicate
        ;; TODO sync
        ;; TODO return information on the sync objects that have been configured -- e.g. what database you are syncing to.
@@ -143,9 +156,23 @@
        :cancel-sync!
        (cancel-sync! db)
        ;;
-       ;; TODO putAttachment
-       ;; TODO getAttachment
-       ;; TODO removeAttachment
+       ;; TODO test putAttachment
+       :put-attachment
+       (attach-success-and-failure-to-promise
+        (.putAttachment db doc-id attachment-id rev attachment attachment-type)
+        success failure)
+       ;;
+       ;; TODO test getAttachment
+       :get-attachment
+       (attach-success-and-failure-to-promise
+        (.getAttachment db doc-id attachment-id (clj->js options))
+        success failure)
+       ;;
+       ;; TODO test removeAttachment
+       :remove-attachment
+       (attach-success-and-failure-to-promise
+        (.remove-attachment db doc-id attachment-id rev)
+        success failure)
        ;; TODO createIndex -- needs the pouchdb-find plugin?
        ;; TODO find
        ;; TODO explain
