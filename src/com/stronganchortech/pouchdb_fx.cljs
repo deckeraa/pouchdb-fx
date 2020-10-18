@@ -98,13 +98,10 @@
                 (throw (js/Error. (str "PouchDB " db " not found." @dbs))))
          options (or options {})]
      (case method
-       :all-docs
+       ;;
+       :destroy
        (attach-success-and-failure-to-promise
-        (.allDocs db (clj->js options))
-        success failure)
-       :bulk-docs
-       (attach-success-and-failure-to-promise
-        (.bulkDocs db (clj->js docs) (clj->js options))
+        (.destroy db) ;; TODO something with the promise isn't working: Uncaught (in promise) Error: database is destroyed
         success failure)
        ;;
        :put
@@ -117,18 +114,50 @@
         (.post db (clj->js doc) (clj->js options))
         success failure)
        ;;
+       ;; TODO get (still need to test
+       :get
+       (attach-success-and-failure-to-promise
+        (.get db (clj->js doc) (clj->js options))
+        success failure)
+       ;;
        :remove
        (attach-success-and-failure-to-promise
         (.remove db (clj->js doc) (clj->js options))
         success failure)
        ;;
-       :destroy
+       :bulk-docs
        (attach-success-and-failure-to-promise
-        (.destroy db) ;; TODO something with the promise isn't working: Uncaught (in promise) Error: database is destroyed
+        (.bulkDocs db (clj->js docs) (clj->js options))
         success failure)
+       ;;
+       :all-docs
+       (attach-success-and-failure-to-promise
+        (.allDocs db (clj->js options))
+        success failure)
+       ;;
+       ;; TODO changes
+       ;; TODO replicate
+       ;; TODO sync
+       ;; TODO return information on the sync objects that have been configured -- e.g. what database you are syncing to.
        ;;
        :cancel-sync!
        (cancel-sync! db)
+       ;;
+       ;; TODO putAttachment
+       ;; TODO getAttachment
+       ;; TODO removeAttachment
+       ;; TODO createIndex -- needs the pouchdb-find plugin?
+       ;; TODO find
+       ;; TODO explain
+       ;; TODO getIndexes
+       ;; TODO deleteIndex
+       ;; TODO query
+       ;; TODO viewCleanup
+       ;; TODO info
+       ;; TODO compact
+       ;; TODO revsDiff
+       ;; TODO bulkGet
+       ;; TODO close
        ;;
        (throw (js/Error. (str "The requested method: " method " is not supported by com.stronganchortech.pouchdb-fx.")))
        ))))

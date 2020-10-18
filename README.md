@@ -22,6 +22,13 @@ For example, here's a button that cancels the syncing on the PouchDB database na
 Here's a Reagent component that will create a new document based on the text in a input field:
 TODO
 
+To pass options listed in the [PouchDB API][https://pouchdb.com/api.html], use the :options keyword and TODO
+
+Databases are referred to in the :db field using a database name which can be either a string or a keyword.
+
+You don't need to create a database before using it. The first time you dispatch a :pouchdb event
+with a db name, the library will create the PouchDB object and cache it locally for subsequent uses during the session.
+
 ## Recommended Patterns
 TODO write about :load-all-pouch and how to use this with re-frame subs.
 
