@@ -9,6 +9,10 @@ Add the following dependency to your project.clj:
 [com.stronganchortech/pouchdb-fx "0.1.0-SNAPSHOT"]
 ```
 
+You will also need to install pouchdb into your project.
+How you do this depends on your setup. If you are using the re-frame lein template,
+you may simply `npm i pouchdb`.
+
 pouchdb-fx registers the :pouchdb event handler in re-frame when you include the library.
 
 :require the following into your namespace:
@@ -29,7 +33,8 @@ TODO
 
 To pass options listed in the [PouchDB API][https://pouchdb.com/api.html], use the :options keyword and TODO
 
-Databases are referred to in the :db field using a database name which can be either a string or a keyword.
+Databases are referred to in the :db field using a database name which must be a string.
+Keyword database names are not supported at this time.
 
 You don't need to create a database before using it. The first time you dispatch a :pouchdb event
 with a db name, the library will create the PouchDB object and cache it locally for subsequent uses during the session.
@@ -66,8 +71,7 @@ You can then create a pair of event handlers to do the doc load and set it into 
  :pouchdb-alldocs-success
  (fn [{:keys [db]} [_  all-docs]]
    (let [docs (mapv :doc (:rows all-docs))]
-      {:db (assoc db :the-key-in-your-app-db-where-you-are-storing-the-docs docs)}))))}
-      )))
+      {:db (assoc db :docs docs)})))
 ```
 
 Then your subscriptions functions in subs.cljs will just read out of the app-db node that

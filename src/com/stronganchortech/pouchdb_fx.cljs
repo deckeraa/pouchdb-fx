@@ -11,6 +11,7 @@
   Pouch doesn't tell us whether the database existed or not, so we just return the db.
   https://pouchdb.com/api.html#create_database"
   [db-name]
+  (println "create-or-open-db!" db-name dbs)
   (let [new-dbs (swap! dbs (fn [dbs]
                              (if (get dbs db-name)
                                dbs
@@ -104,7 +105,9 @@
  :pouchdb
  (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type options success failure] :as request}]
    (let [db (or (db-obj db)
-                (throw (js/Error. (str "PouchDB " db " not found." @dbs))))
+                (if db
+                  (throw (js/Error. (str "PouchDB " db " not found." @dbs)))
+                  (throw (js/Error. (str ":db needs to be specified in: " request)))))
          options (or options {})
          doc-id (or doc-id (:_id doc))  ;; enable devs to pass a doc instead of pulling the id out
          rev    (or rev    (:_rev doc)) ;; enable devs to pass a doc instead of pulling the rev out
@@ -171,7 +174,7 @@
        ;; TODO test removeAttachment
        :remove-attachment
        (attach-success-and-failure-to-promise
-        (.remove-attachment db doc-id attachment-id rev)
+        (.removeAttachment db doc-id attachment-id rev)
         success failure)
        ;; TODO createIndex -- needs the pouchdb-find plugin?
        ;; TODO find
