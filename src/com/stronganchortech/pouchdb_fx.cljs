@@ -103,7 +103,7 @@
 
 (rf/reg-fx
  :pouchdb
- (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type options success failure] :as request}]
+ (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type target-url options success failure handlers] :as request}]
    (let [db (or (db-obj db)
                 (if db
                   (throw (js/Error. (str "PouchDB " db " not found." @dbs)))
@@ -153,7 +153,8 @@
        ;; Note: The changes function isn't handler here since it's handled separately in attach-change-watcher!. TODO: Is this the right design decision? 
        ;; 
        ;; TODO replicate
-       ;; TODO sync
+       :sync!
+       (sync! db target-url options handlers)
        ;; TODO return information on the sync objects that have been configured -- e.g. what database you are syncing to.
        ;;
        :cancel-sync!
