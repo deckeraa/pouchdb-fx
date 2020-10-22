@@ -104,9 +104,8 @@
 (rf/reg-fx
  :pouchdb
  (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type target-url options success failure handlers] :as request}]
-   (let [db-name (if (and (nil? db-name) (string? db)) db db-name) ;; if :db was passed as a string and :db-name is not supplied, use :db as the db name
+   (let [db-name (when (string? db) db)
          db (or (db-obj db) ;; set db to be the actual db object
-                (db-obj db-name)
                 (if db
                   (throw (js/Error. (str "PouchDB " db " not found." @dbs)))
                   (throw (js/Error. (str ":db needs to be specified in: " request)))))
