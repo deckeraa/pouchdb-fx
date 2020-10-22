@@ -62,17 +62,17 @@
    (swap! dbs (fn [dbs]
                 (let [old-sync-obj (get-in dbs [db-name :sync-obj])]
                   (when old-sync-obj (.cancel old-sync-obj))
-                  (println "About to call .sync" pouchdb (name db-name) target (clj->js options))
-                  (let [sync-obj (.sync pouchdb (name db-name) target (clj->js options))]
+                  (println "About to call .sync" pouchdb db-name target (clj->js options))
+                  (let [sync-obj (.sync pouchdb db-name target (clj->js options))]
                     (println "sync-obj: " sync-obj)
                     (doall (map (fn [[k v]]
-                                  ;;(println "Calling .on with " sync-obj (name k) v)
                                   (.on sync-obj (name k) v))
                                 handlers))
                     (assoc-in dbs [db-name :sync-obj] sync-obj)))))))
 
 (defn cancel-sync!
   [db-name]
+  (println "In cancel-sync for " db-name @dbs)
   (swap! dbs (fn [dbs]
                (when-let [sync-obj (get-in dbs [db-name :sync-obj])]
                  (println "Calling .cancel on sync-obj: " sync-obj)
@@ -104,7 +104,9 @@
 (rf/reg-fx
  :pouchdb
  (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type target-url options success failure handlers] :as request}]
-   (let [db (or (db-obj db)
+   (let [db-name (if (and (nil? db-name) (string? db)) db db-name) ;; if :db was passed as a string and :db-name is not supplied, use :db as the db name
+         db (or (db-obj db) ;; set db to be the actual db object
+                (db-obj db-name)
                 (if db
                   (throw (js/Error. (str "PouchDB " db " not found." @dbs)))
                   (throw (js/Error. (str ":db needs to be specified in: " request)))))
@@ -154,11 +156,11 @@
        ;; 
        ;; TODO replicate
        :sync!
-       (sync! db target-url options handlers)
+       (sync! db-name target-url options handlers)
        ;; TODO return information on the sync objects that have been configured -- e.g. what database you are syncing to.
        ;;
        :cancel-sync!
-       (cancel-sync! db)
+       (cancel-sync! db-name)
        ;;
        ;; TODO test putAttachment
        :put-attachment
