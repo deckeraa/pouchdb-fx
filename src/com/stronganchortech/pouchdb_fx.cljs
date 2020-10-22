@@ -83,10 +83,10 @@
   [promise success failure]
   (let [success (if (keyword? success)
                   #(rf/dispatch [success (js->clj % :keywordize-keys true)])
-                  success)
+                  #(success (js->clj % :keywordize-keys true)))
         failure (if (keyword? failure)
                   #(rf/dispatch [failure (js->clj % :keywordize-keys true)])
-                  failure)]
+                  #(failure (js->clj % :keywordize-keys true)))]
     (cond
       ;; attach both
       (and success failure)
@@ -130,10 +130,9 @@
         (.post db (clj->js doc) (clj->js options))
         success failure)
        ;;
-       ;; TODO get (still need to test)
        :get
        (attach-success-and-failure-to-promise
-        (.get db (clj->js doc) (clj->js options))
+        (.get db doc-id (clj->js options))
         success failure)
        ;;
        :remove
