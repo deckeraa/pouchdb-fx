@@ -81,29 +81,34 @@
 (defn- attach-success-and-failure-to-promise
   "Takes a promise and attaches optional success and failure handlers."
   [promise success failure]
-  (let [success (if (keyword? success)
+  (let [success (cond
+                  (keyword? success)
                   #(rf/dispatch [success (js->clj % :keywordize-keys true)])
-                  #(success (js->clj % :keywordize-keys true)))
-        failure (if (keyword? failure)
+                  (not (nil? success))
+                  #(success (js->clj % :keywordize-keys true))
+                  :default
+                  (fn [] nil))
+        failure (cond
+                  (keyword? failure)
                   #(rf/dispatch [failure (js->clj % :keywordize-keys true)])
-                  #(failure (js->clj % :keywordize-keys true)))]
-    (cond
-      ;; attach both
-      (and success failure)
-      (.catch (.then promise success) failure)
-      ;; attach success
-      success
-      (.then promise success)
-      ;; attach failure
-      failure
-      (.catch promise failure)
-      ;; attach neither
-      :default
-      promise)))
+                  (not (nil? failure))    
+                  #(failure (js->clj % :keywordize-keys true))
+                  :default
+                  (fn [] nil))
+        ]
+    (.catch (.then promise success) failure)))
+
+(defn- attach-handlers
+  "Takes a promise and attaches optional success and failure handlers."
+  [obj handlers]
+  (reduce-kv (fn [m k v]
+               (.on m (name k) v))
+             obj
+             handlers))
 
 (rf/reg-fx
  :pouchdb
- (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type target-url options success failure handler handlers] :as request}]
+ (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type source target options success failure handler handlers outbound?] :as request}]
    (let [db-name (when (string? db) db)
          db (or (db-obj db) ;; set db to be the actual db object
                 (if db
@@ -152,11 +157,17 @@
        ;;
        :attach-change-watcher!
        (attach-change-watcher! db-name (clj->js options) handler)
-       ;; Note: The changes function isn't handler here since it's handled separately in attach-change-watcher!. TODO: Is this the right design decision? 
+       ;;
+       :cancel-watcher!
+       (cancel-watcher! db-name)
        ;; 
-       ;; TODO replicate
+       :replicate
+       (attach-handlers
+        (pouchdb/replicate (if outbound? db target) (if outbound? target db) (clj->js options))
+        handlers)
+       ;;
        :sync!
-       (sync! db-name target-url options handlers)
+       (sync! db-name target options handlers)
        ;; TODO return information on the sync objects that have been configured -- e.g. what database you are syncing to.
        ;;
        :cancel-sync!
