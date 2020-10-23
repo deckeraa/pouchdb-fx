@@ -78,6 +78,14 @@
                  (println "Calling .cancel on sync-obj: " sync-obj)
                  (.cancel sync-obj)))))
 
+;; (defn replicate!
+;;   ([db target outbound?]
+;;    (replicate! db target outbound {}))
+;;   ([db target outbound? handlers]
+;;    (swap! dbs (fn [dbs]
+;;                 ))
+;;    ))
+
 (defn- attach-success-and-failure-to-promise
   "Takes a promise and attaches optional success and failure handlers."
   [promise success failure]
@@ -173,19 +181,16 @@
        :cancel-sync!
        (cancel-sync! db-name)
        ;;
-       ;; TODO test putAttachment
        :put-attachment
        (attach-success-and-failure-to-promise
         (.putAttachment db doc-id attachment-id rev attachment attachment-type)
         success failure)
        ;;
-       ;; TODO test getAttachment
        :get-attachment
        (attach-success-and-failure-to-promise
         (.getAttachment db doc-id attachment-id (clj->js options))
         success failure)
        ;;
-       ;; TODO test removeAttachment
        :remove-attachment
        (attach-success-and-failure-to-promise
         (.removeAttachment db doc-id attachment-id rev)
@@ -202,6 +207,10 @@
        ;; TODO revsDiff
        ;; TODO bulkGet
        ;; TODO close
+       :close
+       (attach-success-and-failure-to-promise
+        (.close db)
+        success failure)
        ;;
        (throw (js/Error. (str "The requested method: " method " is not supported by com.stronganchortech.pouchdb-fx.")))
        ))))
