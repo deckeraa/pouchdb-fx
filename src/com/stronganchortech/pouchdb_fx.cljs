@@ -202,11 +202,19 @@
        ;; TODO deleteIndex
        ;; TODO query
        ;; TODO viewCleanup
-       ;; TODO info
-       ;; TODO compact
+       ;;
+       :info
+       (attach-success-and-failure-to-promise
+        (.info db)
+        success failure)
+       ;;
+       :compact
+       (attach-success-and-failure-to-promise
+        (.compact db (clj->js options))
+        success failure)
        ;; TODO revsDiff
        ;; TODO bulkGet
-       ;; TODO close
+       ;;
        :close
        (attach-success-and-failure-to-promise
         (.close db)
