@@ -116,7 +116,7 @@
 
 (rf/reg-fx
  :pouchdb
- (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type source target options success failure handler handlers outbound?] :as request}]
+ (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type source target options success failure handler handlers outbound? diff] :as request}]
    (let [db-name (when (string? db) db)
          db (or (db-obj db) ;; set db to be the actual db object
                 (if db
@@ -212,8 +212,16 @@
        (attach-success-and-failure-to-promise
         (.compact db (clj->js options))
         success failure)
-       ;; TODO revsDiff
+       ;; revsDiff
+       :revsDiff
+       (attach-success-and-failure-to-promise
+        (.revsDiff db (clj->js diff))
+        success failure)
        ;; TODO bulkGet
+       :bulkGet
+       (attach-success-and-failure-to-promise
+        (.bulkGet db (clj->js options))
+        success failure)
        ;;
        :close
        (attach-success-and-failure-to-promise
