@@ -103,7 +103,7 @@
 
 (rf/reg-fx
  :pouchdb
- (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type target-url options success failure handlers] :as request}]
+ (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type target-url options success failure handler handlers] :as request}]
    (let [db-name (when (string? db) db)
          db (or (db-obj db) ;; set db to be the actual db object
                 (if db
@@ -150,6 +150,8 @@
         (.allDocs db (clj->js options))
         success failure)
        ;;
+       :attach-change-watcher!
+       (attach-change-watcher! db-name (clj->js options) handler)
        ;; Note: The changes function isn't handler here since it's handled separately in attach-change-watcher!. TODO: Is this the right design decision? 
        ;; 
        ;; TODO replicate
