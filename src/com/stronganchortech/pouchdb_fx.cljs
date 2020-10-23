@@ -212,12 +212,12 @@
        (attach-success-and-failure-to-promise
         (.compact db (clj->js options))
         success failure)
-       ;; revsDiff
+       ;; 
        :revsDiff
        (attach-success-and-failure-to-promise
         (.revsDiff db (clj->js diff))
         success failure)
-       ;; TODO bulkGet
+       ;; 
        :bulkGet
        (attach-success-and-failure-to-promise
         (.bulkGet db (clj->js options))
