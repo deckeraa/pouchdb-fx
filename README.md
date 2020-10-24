@@ -9,9 +9,9 @@ Add the following dependency to your project.clj:
 [com.stronganchortech/pouchdb-fx "0.1.0-SNAPSHOT"]
 ```
 
-You will also need to install pouchdb into your project.
+You will also need to install pouchdb and the pouchdb-find plugin into your project.
 How you do this depends on your setup. If you are using the re-frame lein template,
-you may simply `npm i pouchdb`.
+you may simply `npm i pouchdb pouchdb-find`.
 
 pouchdb-fx registers the :pouchdb event handler in re-frame when you include the library.
 
