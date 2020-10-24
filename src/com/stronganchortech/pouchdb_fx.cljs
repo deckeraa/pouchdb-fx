@@ -116,9 +116,10 @@
              obj
              handlers))
 
+;; For the underlying API documentation, please see https://pouchdb.com/api.html
 (rf/reg-fx
  :pouchdb
- (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type source target options success failure handler handlers outbound? diff index] :as request}]
+ (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type source target options success failure handler handlers outbound? diff index map-reduce-fn] :as request}]
    (let [db-name (when (string? db) db)
          db (or (db-obj db) ;; set db to be the actual db object
                 (if db
@@ -222,8 +223,16 @@
        (attach-success-and-failure-to-promise
         (.deleteIndex db (clj->js index))
         success failure)
-       ;; TODO query
-       ;; TODO viewCleanup
+       ;;
+       :query
+       (attach-success-and-failure-to-promise
+        (.query db (clj->js map-reduce-fn) (clj->js options))
+        success failure)
+       ;;
+       :viewCleanup
+       (attach-success-and-failure-to-promise
+        (.viewCleanup db)
+        success failure)
        ;;
        :info
        (attach-success-and-failure-to-promise
