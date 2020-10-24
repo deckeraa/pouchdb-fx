@@ -8,6 +8,7 @@ Add the following dependency to your project.clj:
 ```
 [com.stronganchortech/pouchdb-fx "0.1.0-SNAPSHOT"]
 ```
+[![Clojars Project](https://img.shields.io/clojars/v/com.stronganchortech/pouchdb-fx.svg)](https://clojars.org/com.stronganchortech/pouchdb-fx)
 
 You will also need to install pouchdb and the pouchdb-find plugin into your project.
 How you do this depends on your setup. If you are using the re-frame lein template,
