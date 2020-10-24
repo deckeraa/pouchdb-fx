@@ -28,65 +28,10 @@
         (create-or-open-db! db)) ;; or open/create a new one
     db))
 
-(defn attach-change-watcher!
-  "Attaches the provided change-handler to the db specified by db-name.
-   Cancels existing watchers attached to the db."
-  [db-name options change-handler]
-  (create-or-open-db! db-name) ;; make sure that the db is created before attaching a change handler.
-  (swap! dbs (fn [dbs]
-               (let [old-watcher (get-in dbs [db-name :change-watcher])
-                     db-obj (get-in dbs [db-name :db-obj])
-                     change-handler (if (keyword? change-handler)
-                                      #(rf/dispatch [change-handler (js->clj % :keywordize-keys true)])
-                                      change-handler)]
-                 (when old-watcher (.cancel old-watcher))
-                 (assoc-in dbs [db-name :change-watcher]
-                           (.on (.changes db-obj (clj->js options)) "change" change-handler))))))
-
-(defn cancel-watcher!
-  "Cancels all existing watchers on the db specified by db-name."
-  [db-name]
-  (let [watcher (get-in @dbs [db-name :change-watcher])]
-    (when watcher (.cancel watcher))))
-
-(defn sync!
-  "The following event keywords are accepted in handlers:
-  :denied
-  :paused
-  :active
-  :change
-  :complete
-  :error
-  "
-  ([db-name target options]
-   (sync! db-name target options {}))
-  ([db-name target options handlers]
-   (swap! dbs (fn [dbs]
-                (let [old-sync-obj (get-in dbs [db-name :sync-obj])]
-                  (when old-sync-obj (.cancel old-sync-obj))
-                  (println "About to call .sync" pouchdb db-name target (clj->js options))
-                  (let [sync-obj (.sync pouchdb db-name target (clj->js options))]
-                    (println "sync-obj: " sync-obj)
-                    (doall (map (fn [[k v]]
-                                  (.on sync-obj (name k) v))
-                                handlers))
-                    (assoc-in dbs [db-name :sync-obj] sync-obj)))))))
-
-(defn cancel-sync!
-  [db-name]
-  (println "In cancel-sync for " db-name @dbs)
-  (swap! dbs (fn [dbs]
-               (when-let [sync-obj (get-in dbs [db-name :sync-obj])]
-                 (println "Calling .cancel on sync-obj: " sync-obj)
-                 (.cancel sync-obj)))))
-
-;; (defn replicate!
-;;   ([db target outbound?]
-;;    (replicate! db target outbound {}))
-;;   ([db target outbound? handlers]
-;;    (swap! dbs (fn [dbs]
-;;                 ))
-;;    ))
+(defn- make-fn [fn-or-re-frame-event]
+  (if (keyword? fn-or-re-frame-event)
+    #(rf/dispatch [fn-or-re-frame-event])
+    fn-or-re-frame-event))
 
 (defn- attach-success-and-failure-to-promise
   "Takes a promise and attaches optional success and failure handlers."
@@ -112,9 +57,48 @@
   "Takes a promise and attaches optional success and failure handlers."
   [obj handlers]
   (reduce-kv (fn [m k v]
-               (.on m (name k) v))
+               (.on m (name k) (make-fn v)))
              obj
              handlers))
+
+(defn attach-change-watcher!
+  "Attaches the provided change-handler to the db specified by db-name.
+   Cancels existing watchers attached to the db."
+  [db-name options change-handler]
+  (create-or-open-db! db-name) ;; make sure that the db is created before attaching a change handler.
+  (swap! dbs (fn [dbs]
+               (let [old-watcher (get-in dbs [db-name :change-watcher])
+                     db-obj (get-in dbs [db-name :db-obj])
+                     change-handler (if (keyword? change-handler)
+                                      #(rf/dispatch [change-handler (js->clj % :keywordize-keys true)])
+                                      change-handler)]
+                 (when old-watcher (.cancel old-watcher))
+                 (assoc-in dbs [db-name :change-watcher]
+                           (.on (.changes db-obj (clj->js options)) "change" change-handler))))))
+
+(defn cancel-watcher!
+  "Cancels all existing watchers on the db specified by db-name."
+  [db-name]
+  (let [watcher (get-in @dbs [db-name :change-watcher])]
+    (when watcher (.cancel watcher))))
+
+(defn sync!
+  ([db-name target options]
+   (sync! db-name target options {}))
+  ([db-name target options handlers]
+   (swap! dbs (fn [dbs]
+                (let [old-sync-obj (get-in dbs [db-name :sync-obj])]
+                  (when old-sync-obj (.cancel old-sync-obj))
+                  (let [sync-obj (.sync pouchdb db-name target (clj->js options))]
+                    (assoc-in dbs [db-name :sync-obj] (attach-handlers sync-obj handlers))))))))
+
+(defn cancel-sync!
+  [db-name]
+  (println "In cancel-sync for " db-name @dbs)
+  (swap! dbs (fn [dbs]
+               (when-let [sync-obj (get-in dbs [db-name :sync-obj])]
+                 (println "Calling .cancel on sync-obj: " sync-obj)
+                 (.cancel sync-obj)))))
 
 ;; For the underlying API documentation, please see https://pouchdb.com/api.html
 (rf/reg-fx
