@@ -2,9 +2,11 @@
   (:require
    [clojure.spec.alpha :as s]
    [re-frame.core :as rf]
-   ["pouchdb" :as pouchdb]))
+   ["pouchdb" :as pouchdb]
+   ["pouchdb-find" :as pouchdb-find]))
 
 (defonce ^:private dbs (atom {}))
+(defonce install-plugins (pouchdb/plugin pouchdb-find))
 
 (defn create-or-open-db!
   "Uses the PouchDB initializer to open an existing database or create a new one.
@@ -116,7 +118,7 @@
 
 (rf/reg-fx
  :pouchdb
- (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type source target options success failure handler handlers outbound? diff] :as request}]
+ (fn [{:keys [method db doc docs doc-id attachment-id rev attachment attachment-type source target options success failure handler handlers outbound? diff index] :as request}]
    (let [db-name (when (string? db) db)
          db (or (db-obj db) ;; set db to be the actual db object
                 (if db
@@ -195,11 +197,31 @@
        (attach-success-and-failure-to-promise
         (.removeAttachment db doc-id attachment-id rev)
         success failure)
-       ;; TODO createIndex -- needs the pouchdb-find plugin?
-       ;; TODO find
-       ;; TODO explain
-       ;; TODO getIndexes
-       ;; TODO deleteIndex
+       ;; 
+       :createIndex
+       (attach-success-and-failure-to-promise
+        (.createIndex db (clj->js index))
+        success failure)
+       ;; 
+       :find
+       (attach-success-and-failure-to-promise
+        (.find db (clj->js (:request request)))
+        success failure)
+       ;;
+       :explain
+       (attach-success-and-failure-to-promise
+        (.explain db (clj->js (:request request)))
+        success failure)
+       ;; 
+       :getIndexes
+       (attach-success-and-failure-to-promise
+        (.getIndexes db)
+        success failure)
+       ;;
+       :deleteIndex
+       (attach-success-and-failure-to-promise
+        (.deleteIndex db (clj->js index))
+        success failure)
        ;; TODO query
        ;; TODO viewCleanup
        ;;
