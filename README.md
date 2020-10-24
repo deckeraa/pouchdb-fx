@@ -29,9 +29,26 @@ For example, here's a button that cancels the syncing on the PouchDB database na
 ```
 
 Here's a Reagent component that will create a new document based on the text in a input field:
-TODO
+```
+(defn create-note []
+  (let [text (reagent/atom "")]
+    (fn []
+      [:div
+       [:h3 "Create a document using post"]
+       [:input {:type :text :value @text
+                :on-change #(reset! text (-> % .-target .-value))}]
+       [:button {:on-click #(re-frame/dispatch
+                             [:pouchdb
+                              {:db "example"
+                               :method :post
+                               :doc {:type "note" :text @text}
+                               }])}
+        "Create document"]])))
+```
 
-To pass options listed in the [PouchDB API][https://pouchdb.com/api.html], use the :options keyword and TODO
+To determine what key-values to pass in,
+simply refer to the :pouchdb fx handler in [pouchdb_fx.cljs](https://github.com/deckeraa/pouchdb-fx/blob/master/src/com/stronganchortech/pouchdb_fx.cljs) and to the [PouchDB API docs](https://pouchdb.com/api.html).
+There is also example usage in the [pouchdb-fx-examples project](https://github.com/deckeraa/pouchdb-fx-examples).
 
 Databases are referred to in the :db field using a database name which must be a string.
 Keyword database names are not supported at this time.
@@ -40,7 +57,7 @@ You don't need to create a database before using it. The first time you dispatch
 with a db name, the library will create the PouchDB object and cache it locally for subsequent uses during the session.
 
 ## Keeping re-frame in sync with what's in PouchDB.
-I recommend following the following pattern.
+I recommend the following pattern.
 In your events.cljs, use a defonce to create your database and attach a change handler that
 dispatches a :load-from-pouch event any time there is a change:
 ```
@@ -84,7 +101,7 @@ changed, and in these various event handlers use query or find to pull back just
 
 ## License
 
-Copyright © 2020 Aaron Decker stronganchortech.com
+Copyright © 2020 Aaron Decker [stronganchortech.com](stronganchortech.com)
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
