@@ -11,12 +11,10 @@ Add the following dependency to your project.clj:
 [![Clojars Project](https://img.shields.io/clojars/v/com.stronganchortech/pouchdb-fx.svg)](https://clojars.org/com.stronganchortech/pouchdb-fx)
 
 You will also need to install pouchdb and the pouchdb-find plugin into your project.
-How you do this depends on your setup. If you are using the re-frame lein template,
-you may simply `npm i pouchdb pouchdb-find`.
+If you are using the re-frame lein template, you may simply `npm i pouchdb pouchdb-find`.
 
-pouchdb-fx registers the :pouchdb event handler in re-frame when you include the library.
-
-:require the following into your namespace:
+:require the following into your namespace to register the :pouchdb event handler
+and effects handler in re-frame
 ```
 [com.stronganchortech.pouchdb-fx :as pouchdb-fx]
 ```
@@ -43,11 +41,15 @@ Here's a Reagent component that will create a new document based on the text in 
                               {:db "example"
                                :method :post
                                :doc {:type "note" :text @text}
+                               :success :some-other-re-frame-event
+                               :failure (fn [e] (println "failure: " e))
                                }])}
         "Create document"]])))
 ```
+Note that the :success and :failure handlers can either be lambda functions
+or can be re-frame events that will be dispatched.
 
-To determine what key-values to pass in,
+To determine what key-values to pass in to a :pouchdb event,
 simply refer to the :pouchdb fx handler in [pouchdb_fx.cljs](https://github.com/deckeraa/pouchdb-fx/blob/master/src/com/stronganchortech/pouchdb_fx.cljs) and to the [PouchDB API docs](https://pouchdb.com/api.html).
 There is also example usage in the [pouchdb-fx-examples project](https://github.com/deckeraa/pouchdb-fx-examples).
 
@@ -66,9 +68,7 @@ dispatches a :load-from-pouch event any time there is a change:
   (pouchdb-fx/attach-change-watcher!
    "the-name-of-your-database"
    {:since "now" :live true}
-   (fn [v]
-     (re-frame/dispatch [:load-from-pouch]) 
-     )))
+   :load-from-pouch))
 ```
 
 You can then create a pair of event handlers to do the doc load and set it into the app-db:
@@ -80,10 +80,8 @@ You can then create a pair of event handlers to do the doc load and set it into 
     {:db "the-name-of-your-database"
      :method :all-docs
      :options {:include_docs true}
-     :success
-     (fn [v]
-       (re-frame/dispatch [:pouchdb-alldocs-success (js->clj v :keywordize-keys true)])
-       )}}))
+     :success :pouchdb-alldocs-success
+     }}))
 
 (re-frame/reg-event-fx
  :pouchdb-alldocs-success
