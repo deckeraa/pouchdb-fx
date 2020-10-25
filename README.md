@@ -2,6 +2,9 @@
 
 pouchdb-fx is a middleware effects library used to hook up PouchDB to re-frame.
 
+Here's a [code walkthrough](https://youtu.be/Zw9LXApdyXg) of how to use this to make
+a simple offline-first application with built-in sync.
+
 ## Basic Usage
 
 Add the following dependency to your project.clj:
