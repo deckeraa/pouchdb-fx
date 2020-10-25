@@ -28,7 +28,12 @@
         (create-or-open-db! db)) ;; or open/create a new one
     db))
 
-(defn- make-fn [fn-or-re-frame-event]
+(defn- make-fn
+  "Internal helper function that takes in either a fn or a keyword.
+  If passed a function, returns that same function.
+  If passed a keyword, will return a function that dispatches that keyword
+  as a re-frame event."
+  [fn-or-re-frame-event]
   (if (keyword? fn-or-re-frame-event)
     #(rf/dispatch [fn-or-re-frame-event])
     fn-or-re-frame-event))
@@ -54,7 +59,8 @@
     (.catch (.then promise success) failure)))
 
 (defn- attach-handlers
-  "Takes a promise and attaches optional success and failure handlers."
+  "Takes an object and attaches various handlers specified in the handlers map.
+  Keys should be keywords corresponging to the handler name (e.g. :changes for 'changes') and the values should be functions or pouchdb event keywords."
   [obj handlers]
   (reduce-kv (fn [m k v]
                (.on m (name k) (make-fn v)))
@@ -117,7 +123,7 @@
        ;;
        :destroy
        (attach-success-and-failure-to-promise
-        (.destroy db) ;; TODO something with the promise isn't working: Uncaught (in promise) Error: database is destroyed
+        (.destroy db)
         success failure)
        ;;
        :put
@@ -246,6 +252,8 @@
        (throw (js/Error. (str "The requested method: " method " is not supported by com.stronganchortech.pouchdb-fx.")))
        ))))
 
+;; This is an event handler that wraps the effects handler.
+;; That way you don't have to write your own event handlers for simple PouchDB calls.
 (rf/reg-event-fx
  :pouchdb
  (fn [_ [event args]]
