@@ -70,7 +70,7 @@ dispatches a :load-from-pouch event any time there is a change:
 (defonce setup-watcher
   (pouchdb-fx/attach-change-watcher!
    "the-name-of-your-database"
-   {:since "now" :live true}
+   {:live true}
    :load-from-pouch))
 ```
 
