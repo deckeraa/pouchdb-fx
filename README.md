@@ -103,7 +103,7 @@ changed, and in these various event handlers use query or find to pull back just
 
 ## License
 
-Copyright © 2020 Aaron Decker [stronganchortech.com](stronganchortech.com)
+Copyright © 2020 Aaron Decker [stronganchortech.com](https://stronganchortech.com)
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
